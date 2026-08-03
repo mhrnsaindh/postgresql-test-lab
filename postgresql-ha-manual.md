@@ -119,6 +119,15 @@ sudo systemctl restart postgresql
 
 ## 4. Step 2 — Clone the Primary onto Each Standby
 
+## before do this step first setting the network:
+
+1. cat /etc/hosts
+2. sudo tee -a /etc/hosts <<EOF
+10.128.0.10 pg-node1  (use your actually internal IP)
+10.128.0.11 pg-node2  (use your actually internal IP)
+10.128.0.12 pg-node3  (use your actually internal IP)
+EOF ##
+
 On **pg-node2** and **pg-node3**, stop PostgreSQL and wipe the empty data directory, then clone the primary using `pg_basebackup`:
 
 ```bash
