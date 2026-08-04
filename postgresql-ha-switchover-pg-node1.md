@@ -75,11 +75,11 @@ Back on **pg-node1**:
 
 ```bash
 sudo -u postgres pg_basebackup \
-  -h pg-node2 \
+  -h pg-node1 \
   -D /var/lib/postgresql/18/main \
   -U replicator \
-  -P -v -R -X stream -C \
-  -S pg_node1_slot
+  -P -v -R -X stream \
+  -S pg_node2_slot
 
 sudo systemctl start postgresql
 ```
