@@ -69,6 +69,32 @@ host    replication     replicator      10.128.0.4/32          md5
 sudo systemctl reload postgresql
 ```
 
+## Using the `-C` Option with `pg_basebackup`
+
+The `-C` option should **only be used the very first time** you create a standby server, when the **replication slot does not yet exist** on the primary server.
+
+After the replication slot has already been created, **do not use `-C` again**. Instead, simply reference the existing slot using the `-S <slot_name>` option.
+
+> **Rule of Thumb**
+>
+> - **First standby creation** → Use `-C`
+> - **Re-cloning or rebuilding an existing standby** → **Omit `-C`** and use only `-S <slot_name>`
+
+### Verify Whether the Replication Slot Exists
+
+If you're unsure whether the replication slot already exists, check it first on the primary server:
+
+```sql
+SELECT slot_name
+FROM pg_replication_slots;
+```
+
+### Decision Guide
+
+| Replication Slot Status | Action |
+|--------------------------|--------|
+| **Slot not listed** | ✅ Use `-C` to create the replication slot. |
+| **Slot already listed** | ✅ Omit `-C` and use only `-S <slot_name>`. |
 ### 3.4 Clone from pg-node2 onto pg-node1
 
 Back on **pg-node1**:
