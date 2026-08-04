@@ -97,6 +97,13 @@ FROM pg_replication_slots;
 | **Slot already listed** | ✅ Omit `-C` and use only `-S <slot_name>`. |
 ### 3.4 Clone from pg-node2 onto pg-node1
 
+sudo -u postgres pg_basebackup \
+  -h pg-node1 \
+  -D /var/lib/postgresql/18/main \
+  -U replicator \
+  -P -v -R -X stream -C \
+  -S pg_node3_slot
+
 Back on **pg-node1**:
 
 ```bash
