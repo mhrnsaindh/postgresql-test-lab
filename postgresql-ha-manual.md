@@ -119,18 +119,41 @@ sudo systemctl restart postgresql
 
 ## 4. Step 2 — Clone the Primary onto Each Standby
 
-## before do this step first setting the network:
+### Configure Hostname Resolution
 
-## 1. cat /etc/hosts
-## 2. sudo tee -a /etc/hosts <<EOF
-   10.128.0.10 pg-node1  (use your actually internal IP)
-   10.128.0.11 pg-node2  (use your actually internal IP)
-   10.128.0.12 pg-node3  (use your actually internal IP)
-   EOF ##
-##  Why /etc/hosts needs to be set on every single machine?
-   /etc/hosts is a local file — it only affects name resolution on the machine it's stored on. It's not a shared or centralized service like DNS; each VM has its own
-   private copy, and they don't sync with each other automatically. 
+Since GCP VMs don't automatically resolve custom hostnames like `pg-node1`,
+we manually map each node's internal IP to a friendly name via `/etc/hosts`.
+This must be done identically on **all 3 VMs** so every node can resolve
+every other node by name (required for replication commands like
+`pg_basebackup -h pg-node1` and for `primary_conninfo` settings).
 
+\`\`\`bash
+sudo tee -a /etc/hosts <<EOF
+10.128.0.4 pg-node1
+10.128.0.5 pg-node2
+10.128.0.7 pg-node3
+EOF
+\`\`\`
+
+> Run this on pg-node1, pg-node2, and pg-node3 — each machine needs to
+> resolve all node names, including its own.
+
+## Why `/etc/hosts` Needs to Be Configured on Every Machine
+
+`/etc/hosts` is a **local file**, meaning it only affects **name resolution on the machine where it is stored**. Unlike **DNS**, which is a centralized name resolution service, each virtual machine (VM) has its **own private copy** of the `/etc/hosts` file.
+
+Because of this, changes made to `/etc/hosts` on one VM **do not automatically synchronize or propagate** to other machines in the cluster.
+
+> **Important:** This configuration must be applied **on every single VM** in the cluster, **not just once**.
+
+Each node must contain the **exact same set of hostname-to-IP mappings** so that:
+
+- **Node 1** can resolve **Node 2** and **Node 3**.
+- **Node 2** can resolve **Node 1** and **Node 3**.
+- **Node 3** can resolve **Node 1** and **Node 2**.
+- Each node can also correctly resolve **its own hostname**.
+
+Without identical `/etc/hosts` entries across all nodes, the cluster may fail to establish communication for services such as **PostgreSQL streaming replication**, **Patroni**, or other inter-node connections that rely on hostname resolution.
    
 
 On **pg-node2** and **pg-node3**, stop PostgreSQL and wipe the empty data directory, then clone the primary using `pg_basebackup`:
