@@ -134,9 +134,15 @@ sudo tar xzvf /tmp/etcd.tar.gz -C /tmp
 sudo mv /tmp/etcd-${ETCD_VER}-linux-amd64/etcd* /usr/local/bin/
 sudo mkdir -p /var/lib/etcd /etc/etcd
 
-latest version
-ETCD_VER=$(curl -s https://api.github.com/repos/etcd-io/etcd/releases/latest | grep '"tag_name"' | cut -d '"' -f4)
-echo "Using etcd version: $ETCD_VER"
+# Automatically fetch and download the latest etcd release
+curl -sL $(curl -s https://api.github.com/repos/etcd-io/etcd/releases/latest \
+  | grep browser_download_url \
+  | grep linux-amd64.tar.gz \
+  | cut -d '"' -f4) -o /tmp/etcd.tar.gz
+
+sudo tar xzvf /tmp/etcd.tar.gz -C /tmp
+sudo mv /tmp/etcd-*-linux-amd64/etcd* /usr/local/bin/
+sudo mkdir -p /var/lib/etcd /etc/etcd
 ```
 
 ### 6.3 Install Patroni
