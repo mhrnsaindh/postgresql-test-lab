@@ -149,7 +149,7 @@ sudo mkdir -p /var/lib/etcd /etc/etcd
 
 ```bash
 sudo apt install -y python3-pip python3-dev libpq-dev
-sudo pip3 install patroni[etcd3] psycopg2-binary
+sudo pip3 install patroni[etcd3] psycopg2-binary --break-system-packages
 ```
 
 ---
