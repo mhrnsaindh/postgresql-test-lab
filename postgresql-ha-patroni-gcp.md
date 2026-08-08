@@ -400,6 +400,7 @@ sudo apt install -y haproxy
 
 ```
 listen postgres_leader
+    mode tcp
     bind *:5000
     option httpchk GET /master
     http-check expect status 200
