@@ -301,6 +301,71 @@ sudo systemctl enable --now patroni
 
 ---
 
+
+## ⚠️ Lesson Learned: Migrating from Manual Replication to Patroni
+
+When transitioning a node from **manually-managed PostgreSQL** (streaming
+replication set up by hand) to **Patroni-managed PostgreSQL**, you must fully
+stop and remove the old manual instance first. Patroni expects to own the
+entire PostgreSQL lifecycle — starting, stopping, and initializing the data
+directory itself.
+
+### The problem
+
+If an old manually-started PostgreSQL process is still running and already
+bound to port 5432, Patroni's own PostgreSQL instance will fail to start.
+Patroni will appear to run (`systemctl status patroni` shows `active`), but
+will get stuck retrying with errors like:
+<img width="923" height="122" alt="image" src="https://github.com/user-attachments/assets/f9608c3b-a7fa-4968-93d2-e526c1546dee" />
+This happens because the *old* process is still holding the port and socket,
+so Patroni's *new* PostgreSQL instance can never actually bind and start —
+even though a `psql` connection might still succeed (it's just connecting to
+the old, unmanaged instance instead of Patroni's).
+
+### How to identify this situation
+
+```bash
+ps aux | grep postgres
+```
+
+Look for a `postgres` process with an **old start time** (from before Patroni
+was configured) alongside a separate Patroni process with a much more recent
+start time. Two independent PostgreSQL postmasters trying to use the same
+port is the signature of this issue.
+
+### The fix
+
+Before starting Patroni on any node that previously had manual replication
+configured:
+
+```bash
+# 1. Stop Patroni first (if already attempted)
+sudo systemctl stop patroni
+
+# 2. Stop and disable the OLD manually-managed PostgreSQL service
+sudo systemctl stop postgresql@18-main
+sudo systemctl disable postgresql@18-main
+
+# 3. Confirm port 5432 is completely free
+sudo ss -tlnp | grep 5432
+# (should return nothing)
+
+# 4. Wipe the data directory — it contains old manual-replication state,
+#    not something Patroni can safely take over
+sudo rm -rf /var/lib/postgresql/18/main/*
+
+# 5. Now start Patroni — it will initialize a fresh data directory itself
+sudo systemctl daemon-reload
+sudo systemctl enable --now patroni
+```
+
+### Key takeaway
+
+> Never run a manually-managed PostgreSQL instance and Patroni on the same
+> node at the same time. Always fully stop, disable, and clear the data
+> directory of the old instance before letting Patroni take ownership of
+> that node.
+
 ## 9. Step 7 — Verify the Cluster
 
 Install `patronictl` helper (already included with the `patroni` pip package) and check status:
